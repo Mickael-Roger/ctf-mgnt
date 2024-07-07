@@ -3,19 +3,17 @@
 }:
 
 python3Packages.buildPythonApplication rec {
-    pname = "ctf-mngt";
+    pname = "ctf-mgnt";
     version = "0.1.0";
-    format = "other";
 
     propagatedBuildInputs = [
         # List of dependencies
-        python3Packages.argparse
+        python3Packages.configargparse
     ];
 
     src = ./.;
 
-    dontUnpack = true;
     installPhase = ''
-        install -Dm755 ${./${pname}} $out/bin/${pname}
+        install -Dm755 ${./${pname}.py} $out/bin/${pname}
     '';
 }
