@@ -9,6 +9,7 @@ python3Packages.buildPythonApplication rec {
     propagatedBuildInputs = [
         # List of dependencies
         python3Packages.configargparse
+        python3Packages.netaddr
     ];
 
     src = ./.;

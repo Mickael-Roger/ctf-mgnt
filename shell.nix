@@ -2,6 +2,6 @@
 
 pkgs.mkShellNoCC {
   packages = with pkgs; [
-    (python3.withPackages (ps: [  ]))
+    (python3.withPackages (ps: [ ps.netaddr ]))
   ];
 }

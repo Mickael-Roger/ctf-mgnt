@@ -4,6 +4,10 @@ import argparse
 import os
 import time
 import platform
+import sys
+import subprocess
+
+from netaddr import IPNetwork
 
 ###
 # Configuration
@@ -19,10 +23,10 @@ def main():
 
   parser = argparse.ArgumentParser()
   
-  parser.add_argument("-a", "--action", help = "Action", choices=['create', 'stop', 'start', 'delete', 'connect'], required=True)
+  parser.add_argument("-a", "--action", help = "Action", choices=['create', 'stop', 'start', 'delete', 'connect', 'list'], required=True)
   
-  parser.add_argument("-C", "--ctf", help = "CTF Name", required=True)
-  parser.add_argument("-c", "--chall", help = "Challenge Name", required=True)
+  parser.add_argument("-C", "--ctf", help = "CTF Name", required='list' not in sys.argv)
+  parser.add_argument("-c", "--chall", help = "Challenge Name", required='list' not in sys.argv)
   
   parser.add_argument("-b", "--base", help = "Base Image (Default Kali)", default="kali")
 
@@ -45,6 +49,18 @@ def main():
     case "connect":
         connect(args.ctf, args.chall)
 
+    case "list":
+        list()
+
+
+
+def list():
+    
+    print("\tRunning environments:")
+    os.system("virsh --connect qemu:///system list --name | grep '^ctf-mgnt-'")
+    
+    print("\n\tStopped environments:")
+    os.system("virsh --connect qemu:///system list --name --inactive | grep '^ctf-mgnt-'")
 
 
 def createCtf(ctf):
@@ -63,12 +79,17 @@ def createChall(ctf, chall):
     os.mkdir(os.path.join(DataDir, ctf, chall, "data"))
 
 
-def printIP(ctf, chall):
-    os.system("virsh --connect qemu:///system domifaddr " + ctf + "-" + chall)
+def getIP(ctf, chall):
+    command="virsh --connect qemu:///system domifaddr ctf-mgnt-" + ctf + "-" + chall
+    result = subprocess.check_output(command, shell=True, text=True).splitlines(True)[2]
+
+    ip = IPNetwork(result.split()[3])
+
+    return ip.ip
 
 
 def connect(ctf, chall):
-    print("TODO")
+    os.system("ssh -oStrictHostKeyChecking=no ctf@" + str(getIP(ctf, chall)))
 
 def createVm(ctf, chall, base):
 
@@ -87,7 +108,7 @@ def createVm(ctf, chall, base):
         extra_opt=""
 
 
-    os.system("virt-install --connect qemu:///system --name=" + ctf + "-" + chall + " --ram=4096 --vcpus=2 --import --disk path=" + os.path.join(DataDir, ctf, chall, "vm", "vm.qcow2") + ",format=qcow2 --disk path=" + os.path.join(DataDir, ctf, chall, "vm", "cidata.iso") + ",device=cdrom --os-variant=debian12 --network default --graphics vnc,listen=0.0.0.0 --noautoconsole --xml ./memoryBacking/access/@mode=shared --xml ./memoryBacking/source/@type=memfd --xml ./devices/filesystem/@type=mount --xml ./devices/filesystem/@accessmode=passthrough --xml ./devices/filesystem/driver/@type=virtiofs --xml ./devices/filesystem/source/@dir=" + os.path.join(DataDir, ctf, chall, "data") + " --xml ./devices/filesystem/target/@dir=ctf_user --xml ./devices/filesystem/alias/@name=fs0 --xml ./devices/filesystem/address/@type=pci --xml ./devices/filesystem/address/@domain=0x0000 --xml ./devices/filesystem/address/@bus=0x07 --xml ./devices/filesystem/address/@slot=0x00 --xml ./devices/filesystem/address/@function=0x0 " + extra_opt)
+    os.system("virt-install --connect qemu:///system --name=ctf-mgnt-" + ctf + "-" + chall + " --ram=4096 --vcpus=2 --import --disk path=" + os.path.join(DataDir, ctf, chall, "vm", "vm.qcow2") + ",format=qcow2 --disk path=" + os.path.join(DataDir, ctf, chall, "vm", "cidata.iso") + ",device=cdrom --os-variant=debian12 --network default --graphics vnc,listen=0.0.0.0 --noautoconsole --xml ./memoryBacking/access/@mode=shared --xml ./memoryBacking/source/@type=memfd --xml ./devices/filesystem/@type=mount --xml ./devices/filesystem/@accessmode=passthrough --xml ./devices/filesystem/driver/@type=virtiofs --xml ./devices/filesystem/source/@dir=" + os.path.join(DataDir, ctf, chall, "data") + " --xml ./devices/filesystem/target/@dir=ctf_user --xml ./devices/filesystem/alias/@name=fs0 --xml ./devices/filesystem/address/@type=pci --xml ./devices/filesystem/address/@domain=0x0000 --xml ./devices/filesystem/address/@bus=0x07 --xml ./devices/filesystem/address/@slot=0x00 --xml ./devices/filesystem/address/@function=0x0 " + extra_opt)
     #os.system("virt-install --connect qemu:///system --name=" + ctf + "-" + chall + " --ram=4096 --vcpus=2 --import --disk path=" + os.path.join(DataDir, ctf, chall, "vm", "vm.qcow2") + ",format=qcow2 --os-variant=debian12 --network default --graphics vnc,listen=0.0.0.0 --noautoconsole")
 
     os.system("chmod 777 " + os.path.join(DataDir, ctf, chall, "data")) 
@@ -102,18 +123,18 @@ def createVm(ctf, chall, base):
 
 
 def stop(ctf, chall):
-    os.system("virsh --connect qemu:///system destroy " + ctf + "-" + chall)
+    os.system("virsh --connect qemu:///system destroy ctf-mgnt-" + ctf + "-" + chall)
 
 def start(ctf, chall):
-    os.system("virsh --connect qemu:///system start " + ctf + "-" + chall)
-    printIP(ctf, chall)
+    os.system("virsh --connect qemu:///system start ctf-mgnt-" + ctf + "-" + chall)
+    print(getIP(ctf, chall))
 
 
 def delete(ctf, chall):
 
     # Stop and destroyVM
     stop(ctf, chall)
-    os.system("virsh --connect qemu:///system undefine " + ctf + "-" + chall)
+    os.system("virsh --connect qemu:///system undefine ctf-mgnt-" + ctf + "-" + chall)
 
     # Delete VM related files
     os.system("rm -rf " + os.path.join(DataDir, ctf, chall, "vm"))
