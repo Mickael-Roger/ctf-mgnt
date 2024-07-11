@@ -23,12 +23,13 @@ def main():
 
   parser = argparse.ArgumentParser()
   
-  parser.add_argument("-a", "--action", help = "Action", choices=['create', 'stop', 'start', 'delete', 'connect', 'list'], required=True)
+  parser.add_argument("-a", "--action", help = "Action", choices=['create', 'stop', 'start', 'delete', 'connect', 'list', 'copy'], required=True)
   
   parser.add_argument("-C", "--ctf", help = "CTF Name", required='list' not in sys.argv)
   parser.add_argument("-c", "--chall", help = "Challenge Name", required='list' not in sys.argv)
   
   parser.add_argument("-b", "--base", help = "Base Image (Default Kali)", default="kali")
+  parser.add_argument("-f", "--file", help = "File to copy in the CTF environment (Only used with 'copy' action)")
 
   args = parser.parse_args()
 
@@ -48,6 +49,10 @@ def main():
 
     case "connect":
         connect(args.ctf, args.chall)
+
+    case "copy":
+        copy(args.ctf, args.chall, args.file)
+
 
     case "list":
         list()
@@ -89,7 +94,12 @@ def getIP(ctf, chall):
 
 
 def connect(ctf, chall):
-    os.system("ssh -oStrictHostKeyChecking=no ctf@" + str(getIP(ctf, chall)))
+    os.system("ssh -X -oStrictHostKeyChecking=no ctf@" + str(getIP(ctf, chall)))
+
+
+def copy(ctf, chall, file):
+    os.system("scp -oStrictHostKeyChecking=no " + file + " ctf@" + str(getIP(ctf, chall)) + ":")
+
 
 def createVm(ctf, chall, base):
 
