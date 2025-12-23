@@ -1,11 +1,10 @@
 { #lib
- python3Packages,
- setuptools
+ python3Packages
 }:
 
 python3Packages.buildPythonApplication rec {
     pname = "ctf-mgnt";
-    version = "0.1.0";
+    version = "0.3.3";
 
     propagatedBuildInputs = [
         # List of dependencies
@@ -15,7 +14,7 @@ python3Packages.buildPythonApplication rec {
 
 
     pyproject = true;
-    build-system = [ setuptools ];
+    build-system = [ python3Packages.setuptools ];
 
     src = ./.;
 
