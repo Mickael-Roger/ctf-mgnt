@@ -1,5 +1,6 @@
 { #lib
- python3Packages
+ python3Packages,
+ setuptools
 }:
 
 python3Packages.buildPythonApplication rec {
@@ -11,6 +12,10 @@ python3Packages.buildPythonApplication rec {
         python3Packages.configargparse
         python3Packages.netaddr
     ];
+
+
+    pyproject = true;
+    build-system = [ setuptools ];
 
     src = ./.;
 
